@@ -9,7 +9,6 @@ import net.minecraft.world.World;
 
 import com.vitezkolya.devmod.lib.Reference;
 import com.vitezkolya.devmod.tile.MBCore;
-import com.vitezkolya.devmod.tile.MBGhost;
 
 public class MBCoreBlock extends BlockBasic implements ITileEntityProvider {
 	
@@ -17,22 +16,22 @@ public class MBCoreBlock extends BlockBasic implements ITileEntityProvider {
 	
 		super(id);
 		setHardness(0.8F);
-		this.setTickRandomly(true);
+		setTickRandomly(true);
 	}
 	
+	@Override
 	public int tickRate(World world) {
-        return 1;
-    }
+	
+		return 1;
+	}
 	
 	@Override
 	public void breakBlock(World world, int x, int y, int z, int par5, int par6) {
-		
+	
 		MBCore core = (MBCore) world.getBlockTileEntity(x, y, z);
 		
-		if(!world.isRemote) {
-			if(core != null && !core.isValid()) {
-				core.invalidateMultiblock();
-			}
+		if(core != null && !core.isValid()) {
+			core.invalidateMultiblock();
 		}
 		
 		super.breakBlock(world, x, y, z, par5, par6);

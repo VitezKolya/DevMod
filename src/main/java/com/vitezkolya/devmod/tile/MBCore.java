@@ -3,10 +3,10 @@ package com.vitezkolya.devmod.tile;
 
 import java.util.HashMap;
 
-import com.vitezkolya.devmod.lib.Reference;
-
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
+
+import com.vitezkolya.devmod.lib.Reference;
 
 public class MBCore extends TileBasic implements IMultiBlock {
 	
@@ -19,20 +19,21 @@ public class MBCore extends TileBasic implements IMultiBlock {
 	public HashMap<String, ItemStack> blocksOfPattern = new HashMap<String, ItemStack>();
 	protected ItemStack coreBlock;
 	protected ItemStack ghostBlock;
+	protected int rotation;
 	protected int maxWidth;
 	protected int maxDepth;
 	protected int maxHeight;
 	protected boolean isValid = false;
 	
 	public MBCore() {
-		
-
+	
 	}
 	
 	public void setMaxdimensions() {
-		this.maxWidth = pattern[0].length;
-		this.maxDepth = pattern.length;
-		this.maxHeight = pattern[0][0].length;
+	
+		maxWidth = pattern[0].length;
+		maxDepth = pattern.length;
+		maxHeight = pattern[0][0].length;
 	}
 	
 	/**
@@ -58,6 +59,30 @@ public class MBCore extends TileBasic implements IMultiBlock {
 		return new int[] {
 				xCoord, yCoord, zCoord
 		};
+	}
+	
+	public static String[][][] rotate(int rotation, String[][][] pattern) {
+	
+		rotation %= 4;
+		
+		if(rotation == 0) {
+			return pattern;
+		}
+		
+		String[][][] temp = new String[pattern.length][pattern[0].length][pattern[0][0].length];
+		
+		for(int y = 0; y < pattern.length; y++) {
+			
+			for(int x = 0; x < pattern[y].length; x++) {
+				
+				for(int z = 0; z < pattern[y][x].length; z++) {
+					
+					temp[y][pattern[y][x].length - 1 - z][x] = pattern[y][x][z];
+				}
+			}
+		}
+		
+		return rotate(rotation - 1, temp);
 	}
 	
 	/**
@@ -90,7 +115,7 @@ public class MBCore extends TileBasic implements IMultiBlock {
 	
 	@Override
 	public void invalidateMultiblock() {
-		
+	
 		if(!dropPatternBlocks) {
 			
 			revertStructure();
@@ -110,7 +135,6 @@ public class MBCore extends TileBasic implements IMultiBlock {
 	@Override
 	public boolean isValidStructure() {
 	
-		boolean flag = false;
 		int[] core = getCoreTELocalCoords();
 		
 		if(core == null) {
@@ -118,36 +142,52 @@ public class MBCore extends TileBasic implements IMultiBlock {
 		}
 		
 		// Searches the X coords for pattern
-		for(int x = (-core[0]); x <= (maxWidth - core[0]) - 1; x++) {
+		rot: for(int r = 0; r < 4; r++) {
 			
-			// Searches the Z coords for pattern
-			for(int z = (-core[2]); z <= (maxDepth - core[2]) - 1; z++) {
+			System.out.println("Orientation: " + orientation.ordinal());
+			System.out.println("Roatation: " + r);
+			
+			pattern = rotate(r, pattern);
+			
+			for(int x = (-core[0]); x <= (maxWidth - core[0]) - 1; x++) {
 				
-				// Searches the Y coords for pattern
-				for(int y = (-core[1]); y <= (maxHeight - core[1]) - 1; y++) {
+				// Searches the Z coords for pattern
+				
+				for(int z = (-core[2]); z <= (maxDepth - core[2]) - 1; z++) {
 					
-					if(worldObj.getBlockId(x + xCoord, y + yCoord, z + zCoord) == getPatternItem(
-							x + core[0], y + core[1], z + core[2]).itemID
-							&& worldObj.getBlockMetadata(x + xCoord, y + yCoord, z
-									+ zCoord) == getPatternItem(x + core[0], y + core[1],
-									z + core[2]).getItemDamage()) {
-						System.out.println("Found Correct Block");
-						flag = true;
-					} else {
-						System.out.println("Found Incorrect Block");
-						return false;
+					// Searches the Y coords for pattern
+					for(int y = (-core[1]); y <= (maxHeight - core[1]) - 1; y++) {
+						
+						int id = worldObj.getBlockId(x + xCoord, y + yCoord, z + zCoord);
+						int meta = worldObj.getBlockMetadata(x + xCoord, y + yCoord, z
+								+ zCoord);
+						
+						if(id == getPatternItem(x + core[0], y + core[1], z + core[2]).itemID
+								&& meta == getPatternItem(x + core[0], y + core[1],
+										z + core[2]).getItemDamage()) {
+							System.out.println("Found Correct Block");
+							continue;
+						} else {
+							System.out.println("Found Incorrect Block");
+							continue rot;
+						}
 					}
 				}
 			}
+			
+			rotation = r;
+			return true;
 		}
 		
-		return flag;
+		return false;
 	}
 	
 	@Override
 	public void buildStructure() {
 	
 		int[] core = getCoreTELocalCoords();
+		
+		pattern = rotate(rotation, pattern);
 		
 		for(int x = (-core[0]); x < (maxWidth - core[0]); x++) {
 			
@@ -157,7 +197,7 @@ public class MBCore extends TileBasic implements IMultiBlock {
 					
 					int blockId = worldObj.getBlockId(x + xCoord, y + yCoord, z + zCoord);
 					
-					if(blockId == 0 || blockId == this.coreBlock.itemID) {
+					if(blockId == 0 || blockId == coreBlock.itemID) {
 						continue;
 					}
 					
@@ -186,6 +226,8 @@ public class MBCore extends TileBasic implements IMultiBlock {
 	
 		int[] core = getCoreTELocalCoords();
 		
+		pattern = rotate(rotation, pattern);
+		
 		if(isValid) {
 			
 			for(int x = (-core[0]); x < (maxWidth - core[0]); x++) {
@@ -194,20 +236,27 @@ public class MBCore extends TileBasic implements IMultiBlock {
 					
 					for(int y = (-core[1]); y < (maxHeight - core[1]); y++) {
 						
-						int blockId = worldObj.getBlockId(x + xCoord, y + yCoord, z + zCoord);
+						int blockId = worldObj.getBlockId(x + xCoord, y + yCoord, z
+								+ zCoord);
 						
 						if(blockId == 0) {
 							continue;
 						}
 						
-						TileEntity ghost = worldObj.getBlockTileEntity(x + xCoord, y + yCoord, z + zCoord);
+						TileEntity ghost = worldObj.getBlockTileEntity(x + xCoord, y
+								+ yCoord, z + zCoord);
 						
 						if((ghost instanceof MBGhost)) {
-							System.out.println("Former Block = id: " + ((MBGhost) ghost).getFormerBlock().itemID + " damage: " + ((MBGhost) ghost).getFormerBlock().getItemDamage());
+							System.out.println("Former Block = id: "
+									+ ((MBGhost) ghost).getFormerBlock().itemID
+									+ " damage: "
+									+ ((MBGhost) ghost).getFormerBlock().getItemDamage());
 							worldObj.setBlock(x + xCoord, y + yCoord, z + zCoord,
 									((MBGhost) ghost).getFormerBlock().itemID,
-									((MBGhost) ghost).getFormerBlock().getItemDamage(), 1 + 3);
-							worldObj.markBlockForUpdate(x + xCoord, y + yCoord, z + zCoord);
+									((MBGhost) ghost).getFormerBlock().getItemDamage(),
+									1 + 3);
+							worldObj.markBlockForUpdate(x + xCoord, y + yCoord, z
+									+ zCoord);
 							System.out.println("Reverting block");
 						}
 					}
@@ -233,13 +282,15 @@ public class MBCore extends TileBasic implements IMultiBlock {
 				for(int z = (-core[2]); z < (maxDepth - core[2]); z++) {
 					
 					for(int y = (-core[1]); y < (maxHeight - core[1]); y++) {
-						TileEntity ghost = worldObj.getBlockTileEntity(x + xCoord,
-								y + yCoord, z + zCoord);
+						TileEntity ghost = worldObj.getBlockTileEntity(x + xCoord, y
+								+ yCoord, z + zCoord);
 						
 						if(ghost instanceof MBGhost && ghost != null) {
 							
-							worldObj.destroyBlock(x + xCoord,y + yCoord, z + zCoord, true);
-							worldObj.removeBlockTileEntity(x + xCoord,y + yCoord, z + zCoord);
+							worldObj.destroyBlock(x + xCoord, y + yCoord, z + zCoord,
+									true);
+							worldObj.removeBlockTileEntity(x + xCoord, y + yCoord, z
+									+ zCoord);
 						}
 					}
 				}
@@ -269,7 +320,7 @@ public class MBCore extends TileBasic implements IMultiBlock {
 	 * @return ItemStack
 	 */
 	public ItemStack getPatternItem(int x, int y, int z) {
-		
+	
 		return blocksOfPattern.get(pattern[y][x][z]);
 	}
 }
