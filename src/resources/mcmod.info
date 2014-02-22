@@ -1,0 +1,20 @@
+[
+{
+  "modid": "devmod",
+  "name": "Dev Mod",
+  "description": "Blah Blah",
+  "version": "0.1",
+  "url": "",
+  "updateUrl": "",
+  "authorList": [
+    "VitezKolya"
+  ],
+  "credits": "Blah blah blah balh blah!",
+  "logoFile": "",
+  "screenshots": [
+  ],
+  "parent":"",
+  "dependencies": [
+  ]
+}
+]
